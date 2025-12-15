@@ -35,4 +35,16 @@ export class TaskRepository {
             where: { id }
         });
     }
+
+    async findForUser(userId: string) {
+        return prisma.task.findMany({
+            where: {
+                OR: [
+                    { creatorId: userId },
+                    { assignedToId: userId }
+                ]
+            },
+            orderBy: { dueDate: "asc" }
+        });
+    }
 }

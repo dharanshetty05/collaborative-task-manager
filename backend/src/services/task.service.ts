@@ -24,4 +24,8 @@ export class TaskService {
     async deleteTask(id: string) {
         return this.taskRepo.delete(id);
     }
+
+    async getTasksForUser(userId: string) {
+        return this.taskRepo.findForUser(userId);
+    }
 }

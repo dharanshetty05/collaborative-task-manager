@@ -26,4 +26,9 @@ export class TaskController {
         await service.deleteTask(req.params.id);
         res.status(204).send();
     }
+
+    async list(req: AuthRequest, res: Response) {
+        const tasks = await service.getTasksForUser(req.userId!);
+        res.json(tasks);
+    }
 }
