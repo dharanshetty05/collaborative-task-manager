@@ -5,6 +5,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { createTask } from "app/services/tasks";
 import { useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { socket } from "app/services/socket";
 
 const taskSchema = z.object({
         title: z.string().min(1).max(100),
@@ -22,6 +24,21 @@ export default function Dashboard() {
     const [priorityFilter, setPriorityFilter] = useState<string>("ALL");
 
     const queryClient = useQueryClient();
+
+    useEffect(() => {
+        socket.on("task:updated", () => {
+            queryClient.invalidateQueries({ queryKey: ["tasks"] });
+        });
+
+        socket.on("task:assigned", (data) => {
+            alert(`New task assigned: ${data.title}`);
+        });
+
+        return () => {
+            socket.off("task:updated");
+            socket.off("task:assigned");
+        };
+    }, []);
 
     const {
         register,
