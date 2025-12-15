@@ -7,6 +7,7 @@ import { createTask } from "app/services/tasks";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { socket } from "app/services/socket";
+import { updateTask } from "app/services/tasks";
 
 const taskSchema = z.object({
         title: z.string().min(1).max(100),
@@ -66,6 +67,15 @@ export default function Dashboard() {
         }
         return true;
     })
+    
+    // Update task details (assigned to and status) handled here
+    const handleUpdate = async (
+        taskId: string,
+        data: { status?: string, assignedToId?: string }
+    ) => {
+        await updateTask(taskId, data);
+        queryClient.invalidateQueries({ queryKey: ["tasks"] });
+    };
 
     return (
         <div className="p-4">
@@ -133,6 +143,28 @@ export default function Dashboard() {
                         <p className="text-sm">
                             Due: {new Date(task.dueDate).toLocaleDateString()}
                         </p>
+                        <div>
+                            <select
+                                defaultValue={task.status}
+                                onChange={(e) =>
+                                    handleUpdate(task.id, { status: e.target.value })
+                                }
+                            >
+                                <option value="TODO">TODO</option>
+                                <option value="IN_PROGRESS">IN_PROGRESS</option>
+                                <option value="REVIEW">REVIEW</option>
+                                <option value="COMPLETED">COMPLETED</option>
+                            </select>
+
+                            <input
+                                placeholder="Assign to userId"
+                                onBlur={(e) => {
+                                    if (e.target.value) {
+                                        handleUpdate(task.id, { assignedToId: e.target.value });
+                                    }
+                                }}
+                            />
+                        </div>
                     </li>
                 ))}
             </ul>
