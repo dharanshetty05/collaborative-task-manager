@@ -4,6 +4,7 @@ import authRoutes from "./routes/auth.routes";
 import cookieParser from "cookie-parser";
 import { authMiddleware } from "./middleware/auth.middleware";
 import taskRoutes from "./routes/task.routes";
+import { errorHandler } from "./middleware/error.middleware";
 
 const app = express();
 
@@ -16,6 +17,9 @@ app.use(express.json());
 
 // Using cookie parser to parse cookies
 app.use(cookieParser());
+
+// Centralized error handling
+app.use(errorHandler)
 
 // Test route for authMiddleware
 app.get("/api/me", authMiddleware, (req, res) => {

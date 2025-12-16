@@ -17,7 +17,14 @@ export class TaskController {
     }
 
     async update(req: AuthRequest, res: Response) {
+        // Log check
+        console.log("RAW BODY:", req.body);
+        
         const data = updateTaskSchema.parse(req.body);
+
+        // Log check
+        console.log("PARSED DATA:", data);
+
         const task = await service.updateTask(req.params.id, data);
         res.json(task);
     }

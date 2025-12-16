@@ -31,6 +31,8 @@ export class TaskService {
         io.emit("task:updated", task);
 
         if (data.assignedToId) {
+            console.log("EMMITTING task: assigned to", data.assignedToId);
+            
             await this.notificationRepo.create({
                 userId: data.assignedToId,
                 message: `You have been assigned a task: ${task.title}`

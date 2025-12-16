@@ -8,6 +8,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { socket } from "app/services/socket";
 import { updateTask } from "app/services/tasks";
+import TaskSkeleton from "app/components/TaskSkeleton";
 
 const taskSchema = z.object({
         title: z.string().min(1).max(100),
@@ -20,18 +21,21 @@ const taskSchema = z.object({
 type TaskFormData = z.infer<typeof taskSchema>;
 
 export default function Dashboard() {
-    const { data, isLoading } = useTasks();
+    const { data, isLoading, isError } = useTasks();
     const [statusFilter, setStatusFilter] = useState<string>("ALL");
     const [priorityFilter, setPriorityFilter] = useState<string>("ALL");
 
     const queryClient = useQueryClient();
 
     useEffect(() => {
+        socket.connect();
+        
         socket.on("task:updated", () => {
             queryClient.invalidateQueries({ queryKey: ["tasks"] });
         });
 
         socket.on("task:assigned", (data) => {
+            console.log("RECIEVED task:assigned", data);
             alert(`New task assigned: ${data.title}`);
         });
 
@@ -45,7 +49,7 @@ export default function Dashboard() {
         register,
         handleSubmit,
         reset,
-        formState: { errors }
+        formState: { errors, isSubmitting }
     } = useForm<TaskFormData>({
         resolver: zodResolver(taskSchema)
     });
@@ -56,7 +60,23 @@ export default function Dashboard() {
         queryClient.invalidateQueries({ queryKey: ["tasks"] });
     };
 
-    if(isLoading) return <p>Loading tasks...</p>;
+    if (isLoading) {
+        return (
+            <div className="p-4 space-y-2">
+                <TaskSkeleton />
+                <TaskSkeleton />
+                <TaskSkeleton />
+            </div>
+        )
+    }
+
+    if (isError) {
+        return (
+            <p className="p-4 text-red-600">
+                Failed to load tasks
+            </p>
+        )
+    }
 
     const filteredTasks = data.filter((task: any) => {
         if(statusFilter !== "ALL" && task.status !== statusFilter) {
@@ -106,10 +126,18 @@ export default function Dashboard() {
                 />
                 <p>{errors.assignedToId?.message}</p>
 
-                <button type="submit">Create Task</button>
+                <button 
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="bg-black text-white px-4 py-2 rounded disabled:opacity-50"
+                >
+                    {isSubmitting ? "Creating..." : "Create Task" }
+                </button>
             </form>
 
-            {data.length === 0 && <p>No tasks yet</p>}
+            {data.length === 0 && (
+                <p className="text-gray-500">No tasks yet</p>
+            )}
 
             <div className="flex gap-4 mb-4">
                 <select
