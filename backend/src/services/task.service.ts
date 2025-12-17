@@ -20,6 +20,18 @@ export class TaskService {
             status: "TODO"
         });
 
+        if(data.assignedToId) {
+            await this.notificationRepo.create({
+                userId: data.assignedToId,
+                message: `You have been assigned a task: ${task.title}`
+            });
+
+            io.to(data.assignedToId).emit("task:assigned", {
+                taskId: task.id,
+                title: task.title
+            });
+        }
+
         io.emit("task:updated", task);
 
         return task;
@@ -38,11 +50,15 @@ export class TaskService {
                 message: `You have been assigned a task: ${task.title}`
             });
 
-            io.emit("task:assigned", {
+            io.to(data.assignedToId).emit("task:assigned", {
                 taskId: task.id,
-                assignedToId: data.assignedToId,
                 title: task.title
             });
+            // io.emit("task:assigned", {
+            //     taskId: task.id,
+            //     assignedToId: data.assignedToId,
+            //     title: task.title
+            // });
         }
 
         return task;

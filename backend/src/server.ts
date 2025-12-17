@@ -1,6 +1,7 @@
 import { createServer } from "http";
 import { Server } from "socket.io";
 import app from "./app";
+import jwt from "jsonwebtoken";
 
 const httpServer = createServer(app);
 
@@ -11,8 +12,29 @@ const io = new Server(httpServer, {
     }
 });
 
+io.use((socket, next) => {
+    try{
+        console.log("SOCKET AUTH PAYLOAD:", socket.handshake.auth);
+
+        const userId = socket.handshake.auth?.userId;
+
+        if(!userId) {
+            console.log("❌ SOCKET REJECTED: No userId");
+            throw next(new Error("Unauthorized"));
+        }
+
+        socket.data.userId = userId;
+        next();
+    } catch {
+        next(new Error("Unauthorized"));
+    }
+});
+
 io.on("connection", (socket) => {
-    console.log("Client connected", socket.id);
+    const userId = socket.data.userId;
+
+    socket.join(userId);
+    console.log(`User ${userId} connected with socket ${socket.id}`);
 });
 
 const PORT = process.env.PORT || 4000;

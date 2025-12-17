@@ -6,9 +6,10 @@ import { z } from "zod";
 import { createTask } from "app/services/tasks";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
-import { socket } from "app/services/socket";
+import { connectSocket, getSocket } from "app/services/socket";
 import { updateTask } from "app/services/tasks";
 import TaskSkeleton from "app/components/TaskSkeleton";
+import { getMe } from "app/services/auth";
 
 const taskSchema = z.object({
         title: z.string().min(1).max(100),
@@ -24,25 +25,48 @@ export default function Dashboard() {
     const { data, isLoading, isError } = useTasks();
     const [statusFilter, setStatusFilter] = useState<string>("ALL");
     const [priorityFilter, setPriorityFilter] = useState<string>("ALL");
+    const [assigneeMap, setAssigneeMap] = useState<Record<string, string>>({});
 
     const queryClient = useQueryClient();
 
     useEffect(() => {
-        socket.connect();
-        
-        socket.on("task:updated", () => {
-            queryClient.invalidateQueries({ queryKey: ["tasks"] });
-        });
+        async function initSocket() {
+            const me = await getMe();
+            console.log("ME:", me);
+            const socket = connectSocket(me.id);
 
-        socket.on("task:assigned", (data) => {
-            console.log("RECIEVED task:assigned", data);
-            alert(`New task assigned: ${data.title}`);
-        });
+            socket.on("task:updated", () => {
+                queryClient.invalidateQueries({ queryKey: ["tasks"] });
+            });
+
+            socket.on("task:assigned", (data) => {
+                console.log("RECIEVED task:assigned", data);
+                alert(`New task assigned: ${data.title}`);
+            });
+        }
+
+        initSocket();
 
         return () => {
+            const socket = getSocket();
             socket.off("task:updated");
             socket.off("task:assigned");
-        };
+        }
+        // socket.connect();
+        
+        // socket.on("task:updated", () => {
+        //     queryClient.invalidateQueries({ queryKey: ["tasks"] });
+        // });
+
+        // socket.on("task:assigned", (data) => {
+        //     console.log("RECIEVED task:assigned", data);
+        //     alert(`New task assigned: ${data.title}`);
+        // });
+
+        // return () => {
+        //     socket.off("task:updated");
+        //     socket.off("task:assigned");
+        // };
     }, []);
 
     const {
