@@ -1,7 +1,8 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
+import { email, z } from "zod";
 import { loginUser } from "app/services/auth";
+import { useRouter } from "next/router";
 
 const schema = z.object({
     email: z.string().email(),
@@ -11,6 +12,8 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>;
 
 export default function Login() {
+    const router = useRouter();
+
     const {
         register,
         handleSubmit,
@@ -30,9 +33,13 @@ export default function Login() {
             <p>{errors.email?.message}</p>
 
             <input placeholder="Password" {...register("password")} />
-            <p>{errors.email?.message}</p>
+            <p>{errors.password?.message}</p>
 
-            <button type="submit">Login</button>
+            <button type="submit" onClick={async () => {
+                router.push('/dashboard')
+            }}>
+                Login
+            </button>
         </form>
     )
 }

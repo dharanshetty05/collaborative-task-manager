@@ -19,6 +19,7 @@ export class AuthService {
         });
 
         const token = signToken({ userId: user.id });
+        console.log("User registered", user.id);
         return { user, token };
     }
 
@@ -34,6 +35,7 @@ export class AuthService {
         }
         
         const token = signToken({ userId: user.id });
+        console.log("User logged in", user.id);
         return { user, token };
     }
 }

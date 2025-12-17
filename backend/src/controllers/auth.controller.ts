@@ -45,4 +45,14 @@ export class AuthController {
             email: user.email
         });
     }
+
+    async logout(_req: Request, res: Response) {
+        res.clearCookie("token", {
+            httpOnly: true,
+            sameSite: "lax",
+            secure: false
+        });
+
+        res.status(200).json({ messaage: "Logged out successfully" });
+    }
 }

@@ -10,6 +10,8 @@ import { connectSocket, getSocket } from "app/services/socket";
 import { updateTask } from "app/services/tasks";
 import TaskSkeleton from "app/components/TaskSkeleton";
 import { getMe } from "app/services/auth";
+import { logoutUser } from "app/services/auth";
+import { useRouter } from "next/router";
 
 const taskSchema = z.object({
         title: z.string().min(1).max(100),
@@ -22,6 +24,8 @@ const taskSchema = z.object({
 type TaskFormData = z.infer<typeof taskSchema>;
 
 export default function Dashboard() {
+    const router = useRouter();
+
     const { data, isLoading, isError } = useTasks();
     const [statusFilter, setStatusFilter] = useState<string>("ALL");
     const [priorityFilter, setPriorityFilter] = useState<string>("ALL");
@@ -122,73 +126,101 @@ export default function Dashboard() {
     };
 
     return (
-        <div className="p-4">
-            <h1 className="text-xl font-bold mb-4">My Tasks</h1>
-
-            <form onSubmit={handleSubmit(onSubmit)} className="mb-6 space-y-2">
-                <input placeholder="Title" {...register("title")} />
-                <p>{errors.title?.message}</p>
+        <div className="min-h-screen bg-gray-50">
+            <div className="max-w-6xl mx-auto px-6">
                 
-                <input placeholder="Description" {...register("description")} />
-                <p>{errors.description?.message}</p>
+                {/* Dashboard Header (My Tasks + Logout Button) */}
+                <div className="flex items-center justify-between mb-6">
+                    <h1 className="text-2xl font-semibold text-gray-900">
+                        My Tasks
+                    </h1>
 
-                <input type="date" {...register("dueDate")} />
-                <p>{errors.dueDate?.message}</p>
+                    <button
+                        onClick={async () => {
+                        await logoutUser();
+                        router.push("/login");
+                        }}
+                        className="text-sm text-gray-600 hover:text-black"
+                    >
+                        Logout
+                    </button>
+                </div>
 
-                <select {...register("priority")}>
-                    <option value="">Select priority</option>
-                    <option value="LOW">LOW</option>
-                    <option value="MEDIUM">MEDIUM</option>
-                    <option value="HIGH">HIGH</option>
-                    <option value="URGENT">URGENT</option>
-                </select>
-                <p>{errors.priority?.message}</p>
+                {/* Create Task Form */}
+                <form onSubmit={handleSubmit(onSubmit)} className="bg-white border text-gray-900 rounded-lg p-4 mb-6 space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <input placeholder="Title" {...register("title")} className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black"/>
+                        <p className="text-xs text-red-600 mt-1">{errors.title?.message}</p>
+                        
+                        <input placeholder="Description" {...register("description")} className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black"/>
+                        <p className="text-xs text-red-600 mt-1">{errors.description?.message}</p>
 
-                <input 
-                    placeholder="Assigned To User ID"
-                    {...register("assignedToId")}
-                />
-                <p>{errors.assignedToId?.message}</p>
+                        <input type="date" {...register("dueDate")} className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black"/>
+                        <p className="text-xs text-red-600 mt-1">{errors.dueDate?.message}</p>
 
-                <button 
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="bg-black text-white px-4 py-2 rounded disabled:opacity-50"
-                >
-                    {isSubmitting ? "Creating..." : "Create Task" }
-                </button>
-            </form>
+                        <select {...register("priority")} className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black">
+                            <option value="">Select priority</option>
+                            <option value="LOW">LOW</option>
+                            <option value="MEDIUM">MEDIUM</option>
+                            <option value="HIGH">HIGH</option>
+                            <option value="URGENT">URGENT</option>
+                        </select>
+                        <p className="text-xs text-red-600 mt-1">{errors.priority?.message}</p>
 
-            {data.length === 0 && (
-                <p className="text-gray-500">No tasks yet</p>
-            )}
+                        <input 
+                            placeholder="Assigned To User ID"
+                            {...register("assignedToId")}
+                            className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black"
+                        />
+                        <p className="text-xs text-red-600 mt-1">     {errors.assignedToId?.message}</p>
+                    </div>
 
-            <div className="flex gap-4 mb-4">
-                <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                >
-                    <option value="ALL">All Status</option>
-                    <option value="TODO">TODO</option>
-                    <option value="IN_PROGRESS">IN_PROGRESS</option>
-                    <option value="REVIEW">REVIEW</option>
-                    <option value="COMPLETED">COMPLETED</option>
-                </select>
+                    {/* Create Task Buttom */}
+                    <button 
+                        type="submit"
+                        disabled={isSubmitting}
+                        className="bg-black text-white px-4 py-2 rounded hover:bg-gray-800 disabled:opacity-50"
+                    >
+                        {isSubmitting ? "Creating..." : "Create Task" }
+                    </button>
+                </form>
 
-                <select
-                    value={priorityFilter}
-                    onChange={(e) => setPriorityFilter(e.target.value)}>
-                        <option value="ALL">All Priority</option>
-                        <option value="LOW">LOW</option>
-                        <option value="MEDIUM">MEDIUM</option>
-                        <option value="HIGH">HIGH</option>
-                        <option value="URGENT">URGENT</option>
+                {/* Check if no tasks */}
+                {data.length === 0 && (
+                    <p className="text-sm text-gray-500 text-center py-12">
+                        No tasks yet. Create your first task above.
+                    </p>
+                )}
+
+                {/* Filtering based on Status and Priority */}
+                <div className="flex gap-3 mb-6 text-gray-900">
+                    <select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                    className="border rounded px-3 py-2 text-sm bg-white"
+                    >
+                        <option value="ALL">All Status</option>
+                        <option value="TODO">TODO</option>
+                        <option value="IN_PROGRESS">IN_PROGRESS</option>
+                        <option value="REVIEW">REVIEW</option>
+                        <option value="COMPLETED">COMPLETED</option>
                     </select>
-            </div>
+
+                    <select
+                        value={priorityFilter}
+                        onChange={(e) => setPriorityFilter(e.target.value)}
+                        className="border rounded px-3 py-2 text-sm bg-white">
+                            <option value="ALL">All Priority</option>
+                            <option value="LOW">LOW</option>
+                            <option value="MEDIUM">MEDIUM</option>
+                            <option value="HIGH">HIGH</option>
+                            <option value="URGENT">URGENT</option>
+                        </select>
+                </div>
 
             <ul className="space-y-2">
                 {filteredTasks.map((task: any) => (
-                    <li key={task.id} className="border p-3 rounded">
+                    <li key={task.id} className="bg-white border rounded-lg p-4 flex justify-between gap-4">
                         <p className="font-semibold">{task.title}</p>
                         <p className="text-sm">{task.status}</p>
                         <p className="text-sm">{task.priority}</p>
@@ -220,6 +252,7 @@ export default function Dashboard() {
                     </li>
                 ))}
             </ul>
+        </div>
         </div>
     )
 }

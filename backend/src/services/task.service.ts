@@ -1,7 +1,6 @@
 import { TaskRepository } from "../repositories/task.repository";
 import { NotificationRepository } from "../repositories/notification.repository";
 import { io } from "../server";
-import { title } from "node:process";
 
 export class TaskService {
     private taskRepo = new TaskRepository();
@@ -34,6 +33,8 @@ export class TaskService {
 
         io.emit("task:updated", task);
 
+        console.log("Task created", task.id);
+        console.log("Task created by", data.creatorId);
         return task;
     }
 
@@ -54,14 +55,13 @@ export class TaskService {
                 taskId: task.id,
                 title: task.title
             });
-            // io.emit("task:assigned", {
-            //     taskId: task.id,
-            //     assignedToId: data.assignedToId,
-            //     title: task.title
-            // });
         }
-
+        console.log("Task assigned", {
+            taskId: task.id,
+            to: data.assignedToId
+        });
         return task;
+
     }
 
 

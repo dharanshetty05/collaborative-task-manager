@@ -1,7 +1,15 @@
 import { createServer } from "http";
 import { Server } from "socket.io";
 import app from "./app";
-import jwt from "jsonwebtoken";
+
+// Safety checks for JWT_SECRET and DATABASE_URL
+if(!process.env.JWT_SECRET) {
+    throw new Error("JWT_SECRET not defined");
+}
+
+if(!process.env.DATABASE_URL){
+    throw new Error("DATABASE_URL not defined");
+}
 
 const httpServer = createServer(app);
 
