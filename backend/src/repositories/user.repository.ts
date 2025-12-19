@@ -21,4 +21,16 @@ export class UserRepository {
     }): Promise<User> {
         return prisma.user.create({ data });
     }
+
+    async updateName(userId: string, name: string) {
+        return prisma.user.update({
+            where: { id: userId },
+            data: { name },
+            select: {
+                id: true,
+                name: true,
+                email: true
+            }
+        });
+    }
 }

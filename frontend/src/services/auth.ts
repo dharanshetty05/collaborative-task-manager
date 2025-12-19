@@ -25,3 +25,8 @@ export async function getMe() {
 export async function logoutUser() {
     await api.post("/api/auth/logout");
 }
+
+export async function updateProfile(data:{ name: string }) {
+    const res = await api.patch("/api/me", data);
+    return res.data;
+}

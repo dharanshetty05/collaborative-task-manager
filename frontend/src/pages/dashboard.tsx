@@ -12,7 +12,6 @@ import TaskSkeleton from "app/components/TaskSkeleton";
 import { logoutUser } from "app/services/auth";
 import { useRouter } from "next/router";
 import { useMe } from "app/hooks/useMe";
-import Notifications from "app/components/Notifications";
 import NotificationBell from "app/components/NotificationBell";
 
 const taskSchema = z.object({
@@ -145,6 +144,10 @@ export default function Dashboard() {
                     
                     <div className="flex items-center gap-4">
                         <NotificationBell />
+
+                        <a href="/profile" className="text-sm text-gray-600 hover:text-black">
+                            Profile
+                        </a>
 
                         <button
                             onClick={async () => {

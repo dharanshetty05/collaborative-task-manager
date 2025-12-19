@@ -6,6 +6,7 @@ import { authMiddleware, AuthRequest } from "./middleware/auth.middleware";
 import taskRoutes from "./routes/task.routes";
 import { errorHandler } from "./middleware/error.middleware";
 import notificationRoutes from "./routes/notification.routes"
+import userRoutes from "./routes/user.routes";
 
 const app = express();
 
@@ -19,22 +20,18 @@ app.use(express.json());
 // Using cookie parser to parse cookies
 app.use(cookieParser());
 
-// Centralized error handling
-app.use(errorHandler)
-
-// Test route for authMiddleware
-app.get("/api/me", authMiddleware, (req: AuthRequest, res) => {
-    res.json({ 
-        id: req.userId
-    });
-})
-
+// Simple health check
 app.get("/health", (req, res) => {
     res.status(200).json({ status: "ok"});
 });
 
+// Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/tasks", taskRoutes);
 app.use("/notifications", notificationRoutes)
+app.use("/api", userRoutes);
+
+// Centralized error handling
+app.use(errorHandler)
 
 export default app;

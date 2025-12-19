@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { AuthService } from "../services/auth.service";
-import { registerSchema, loginSchema } from "../dto/auth.dto";
+import { registerSchema, loginSchema, updateProfileSchema } from "../dto/auth.dto";
+import { AuthRequest } from "../middleware/auth.middleware";
 
 const authService = new AuthService();
 
@@ -54,5 +55,24 @@ export class AuthController {
         });
 
         res.status(200).json({ message: "Logged out successfully" });
+    }
+
+    async me(req: AuthRequest, res: Response) {
+        console.log("USER CONTROLLER /me HIT");
+        const userId = req.userId!;
+        const user = await authService.getMe(userId);
+        res.json(user);
+    }
+
+    async updateProfile(req: AuthRequest, res: Response) {
+        const userId = req.userId!;
+        const data = updateProfileSchema.parse(req.body);
+
+        const updatedUser = await authService.updateProfile(
+            userId,
+            data.name
+        );
+        
+        res.json(updatedUser);
     }
 }
