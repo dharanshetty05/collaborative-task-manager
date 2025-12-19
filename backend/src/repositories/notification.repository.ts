@@ -17,4 +17,18 @@ export class NotificationRepository {
             orderBy: { createdAt: "desc" }
         });
     }
+
+    async markAsRead(id: string, userId: string) {
+        return prisma.notification.updateMany({
+            where: { id, userId, isRead: false },
+            data: { isRead: true }
+        });
+    }
+
+    async markAllAsRead(userId: string) {
+        return prisma.notification.updateMany({
+            where: { userId, isRead: false },
+            data: { isRead: true }
+        });
+    }
 }

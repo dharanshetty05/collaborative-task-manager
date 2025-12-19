@@ -12,6 +12,8 @@ import TaskSkeleton from "app/components/TaskSkeleton";
 import { logoutUser } from "app/services/auth";
 import { useRouter } from "next/router";
 import { useMe } from "app/hooks/useMe";
+import Notifications from "app/components/Notifications";
+import NotificationBell from "app/components/NotificationBell";
 
 const taskSchema = z.object({
         title: z.string().min(1).max(100),
@@ -55,6 +57,10 @@ export default function Dashboard() {
         if (!me) return;
         
         const socket = connectSocket(me.id);
+
+        socket.on("notification:new", () => {
+            queryClient.invalidateQueries({ queryKey: ["notifications"] });
+        });
         
         socket.on("task:updated", () => {
             queryClient.invalidateQueries({ queryKey: ["tasks"] });
@@ -65,6 +71,7 @@ export default function Dashboard() {
         });
         
         return () => {
+            socket.off("notification:new");
             socket.off("task:updated");
             socket.off("task:assigned");
         };
@@ -135,18 +142,22 @@ export default function Dashboard() {
                     <h1 className="text-2xl font-semibold text-gray-900">
                         My Tasks
                     </h1>
+                    
+                    <div className="flex items-center gap-4">
+                        <NotificationBell />
 
-                    <button
-                        onClick={async () => {
-                        await logoutUser();
-                        disconnectSocket();
-                        queryClient.clear();
-                        router.push("/login");
-                        }}
-                        className="text-sm text-gray-600 hover:text-black"
-                    >
-                        Logout
-                    </button>
+                        <button
+                            onClick={async () => {
+                                await logoutUser();
+                                disconnectSocket();
+                                queryClient.clear();
+                                router.push("/login");
+                            }}
+                            className="text-sm text-gray-600 hover:text-black"
+                            >
+                            Logout
+                        </button>
+                    </div>
                 </div>
 
                 {/* Create Task Form */}

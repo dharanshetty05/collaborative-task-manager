@@ -5,7 +5,7 @@ import cookieParser from "cookie-parser";
 import { authMiddleware, AuthRequest } from "./middleware/auth.middleware";
 import taskRoutes from "./routes/task.routes";
 import { errorHandler } from "./middleware/error.middleware";
-import { email } from "zod";
+import notificationRoutes from "./routes/notification.routes"
 
 const app = express();
 
@@ -35,5 +35,6 @@ app.get("/health", (req, res) => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/tasks", taskRoutes);
+app.use("/notifications", notificationRoutes)
 
 export default app;
