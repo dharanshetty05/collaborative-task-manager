@@ -6,14 +6,22 @@ export const createTaskSchema = z.object({
     description: z.string(),
     dueDate: z.string(),
     priority: z.nativeEnum(TaskPriority),
-    assignedToId: z.string()
+    assignedToId: z.string().uuid().optional()
 });
 
 export const updateTaskSchema = z.object({
-    title: z.string().max(100).optional(),
-    description: z.string().optional(),
+    title: z.string().min(1).max(100).optional(),
+    description: z.string().min(1).optional(),
     dueDate: z.string().optional(),
     priority: z.nativeEnum(TaskPriority).optional(),
     status: z.nativeEnum(TaskStatus).optional(),
-    assignedToId: z.string().optional()
+    assignedToId: z
+        .string()
+        .uuid()
+        .trim()
+        .optional()
+        .transform(v => (v === "" ? undefined : v))
+        .refine(v => v === undefined || /^[0-9a-f-]{36}$/i.test(v), {
+            message: "Invalid UUID"
+        }),
 });

@@ -9,4 +9,5 @@ const controller = new AuthController();
 router.get("/me", authMiddleware, (req, res) => controller.me(req, res));
 router.patch("/me", authMiddleware, (req, res) => controller.updateProfile(req, res));
 
+router.get("/users", authMiddleware, controller.list);
 export default router;

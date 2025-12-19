@@ -2,8 +2,10 @@ import { Request, Response } from "express";
 import { AuthService } from "../services/auth.service";
 import { registerSchema, loginSchema, updateProfileSchema } from "../dto/auth.dto";
 import { AuthRequest } from "../middleware/auth.middleware";
+import { UserRepository } from "../repositories/user.repository";
 
 const authService = new AuthService();
+const repo = new UserRepository();
 
 export class AuthController {
     async register(req: Request, res: Response) {
@@ -74,5 +76,10 @@ export class AuthController {
         );
         
         res.json(updatedUser);
+    }
+
+    async list(req: AuthRequest, res: Response) {
+        const users = await repo.findAll();
+        res.json(users);
     }
 }

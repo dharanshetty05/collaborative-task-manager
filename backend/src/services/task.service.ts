@@ -1,6 +1,7 @@
 import { TaskRepository } from "../repositories/task.repository";
 import { NotificationRepository } from "../repositories/notification.repository";
 import { io } from "../server";
+import { TaskPriority } from "@prisma/client";
 
 export class TaskService {
     private taskRepo = new TaskRepository();
@@ -10,79 +11,97 @@ export class TaskService {
         title: string;
         description: string;
         dueDate: Date;
-        priority: any;
+        priority: TaskPriority;
         creatorId: string;
-        assignedToId: string;
+        assignedToId?: string;
     }) {
-        // Task Created
+        const assignedToId = data.assignedToId ?? data.creatorId;
+
         const task = await this.taskRepo.create({
             ...data,
+            assignedToId,
             status: "TODO"
         });
 
         // Notification created ONLY if assigned to someone else
-        if(data.assignedToId && data.assignedToId !== data.creatorId) {
+        if(assignedToId !== data.creatorId) {
             const notification = await this.notificationRepo.create({
-                userId: data.assignedToId,
+                userId: assignedToId,
                 message: `You have been assigned a task: ${task.title}`
             });
 
-            // Socket emitted after DB write happens
-            io.to(data.assignedToId).emit("notification:new", {
+            io.to(assignedToId).emit("notification:new", {
                 notificationId: notification.id
             });
         }
 
         // Task update broadcasted
         io.emit("task:updated", task);
-
-        // Simple health check
-        console.log("Task created", task.id);
-        console.log("Task created by", data.creatorId);
-
         return task;
     }
 
-    async updateTask(id: string, data: any) {
-        // Fetch existing task
-        const existingTask = await this.taskRepo.findById(id);
-        if (!existingTask) {
-            throw new Error("Task not found");
-        }
+    async updateTask(taskId: string, userId: string, data: any) {
+        const task = await this.taskRepo.findById(taskId);
+        if (!task) throw new Error("Task not found");
 
-        // Detect assignment change
-        const assignmentChanged = data.assignedToId && data.assignedToId !== existingTask.assignedToId;
+        const canEdit =
+            task.creatorId === userId ||
+            task.assignedToId === userId;
 
-        // Update task
-        const updatedTask = await this.taskRepo.update(id, data);
+        if (!canEdit) throw new Error("Forbidden");
 
-        // Assignment side-effect handled ONLY if changed
-        if (assignmentChanged && data.assignedToId !== existingTask.creatorId) {
-            const notification = await this.notificationRepo.create({
-                userId: data.assignedToId,
-                message: `You have been assigned a task : ${updatedTask.title}`
-            });
-        } 
+        const normalizedData = {
+            ...data,
+            ...(data.dueDate && { dueDate: new Date(data.dueDate) })
+        };
 
-        // Emit task update
-        io.emit("task:updated");
+        const updated = await this.taskRepo.update(taskId, normalizedData);
 
-        return updatedTask;
+        io.to(task.creatorId).emit("task:updated", updated);
+        io.to(task.assignedToId).emit("task:updated", updated);
+
+        return updated;
     }
 
+
     // Delete task
-    async deleteTask(id: string) {
-        await this.taskRepo.delete(id);
+    async deleteTask(taskId: string, userId: string) {
+        const task = await this.taskRepo.findById(taskId);
 
-        io.emit("task:updated", { id });
+        if(!task) {
+            throw new Error("Task not found");
+        }
+        if(task.creatorId !== userId) {
+            throw new Error("Forbidden");
+        }
 
-        return;
+        await this.taskRepo.delete(taskId);
+        io.emit("task:deleted", { taskId });
     }
     
     async getTasksForUser(
         userId: string,
         view?: "assigned" | "created" | "overdue"
     ) {
-        return this.taskRepo.findForUser(userId, { view });
+        return this.taskRepo.findForUser(userId, view);
     }
+
+    async getTaskById(taskId: string, userId: string) {
+        const task = await this.taskRepo.findById(taskId);
+
+        if (!task) {
+            throw new Error("Task not found");
+        }
+
+        const canView =
+            task.creatorId === userId ||
+            task.assignedToId === userId;
+
+        if (!canView) {
+            throw new Error("Forbidden");
+        }
+
+        return task;
+    }
+
 }

@@ -20,29 +20,34 @@ const io = new Server(httpServer, {
     }
 });
 
-io.use((socket, next) => {
-    try{
-        console.log("SOCKET AUTH PAYLOAD:", socket.handshake.auth);
+// io.use((socket, next) => {
+//     try{
+//         console.log("SOCKET AUTH PAYLOAD:", socket.handshake.auth);
 
-        const userId = socket.handshake.auth?.userId;
+//         const userId = socket.handshake.auth?.userId;
 
-        if(!userId) {
-            console.log("❌ SOCKET REJECTED: No userId");
-            throw next(new Error("Unauthorized"));
-        }
+//         if(!userId) {
+//             console.log("❌ SOCKET REJECTED: No userId");
+//             throw next(new Error("Unauthorized"));
+//         }
 
-        socket.data.userId = userId;
-        next();
-    } catch {
-        next(new Error("Unauthorized"));
-    }
-});
+//         socket.data.userId = userId;
+//         next();
+//     } catch {
+//         next(new Error("Unauthorized"));
+//     }
+// });
 
 io.on("connection", (socket) => {
-    const userId = socket.data.userId;
+    const userId = socket.handshake.auth.userId;
+
+    if (!userId) {
+        socket.disconnect();
+        return;
+    }
 
     socket.join(userId);
-    console.log(`User ${userId} connected with socket ${socket.id}`);
+    console.log("User joined room:", userId);
 });
 
 const PORT = process.env.PORT || 4000;

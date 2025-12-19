@@ -35,4 +35,15 @@ export class UserRepository {
             }
         });
     }
+
+    async findAll() {
+        return prisma.user.findMany({
+            select: {
+                id: true,
+                name: true,
+                email: true
+            },
+            orderBy: { name: "asc" }
+        });
+    }
 }

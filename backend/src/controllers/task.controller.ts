@@ -17,35 +17,59 @@ export class TaskController {
     }
 
     async update(req: AuthRequest, res: Response) {
-        // Log check
-        console.log("RAW BODY:", req.body);
-        
-        const data = updateTaskSchema.parse(req.body);
-
-        // Log check
-        console.log("PARSED DATA:", data);
-
-        const task = await service.updateTask(req.params.id, data);
-        res.json(task);
+        try{
+            const data = updateTaskSchema.parse(req.body);        // Log check
+            console.log("PATCH PAYLOAD AFTER ZOD:", data);
+            const task = await service.updateTask(
+                req.params.id, 
+                req.userId!,
+                data);
+            res.json(task);
+        } catch (err) {
+            console.error("UPDATE TASK FAILED:", err);
+            res.status(400).json({
+                message: "Invalid update payload"
+            });
+        }
     }
 
     async delete(req: AuthRequest, res: Response) {
-        await service.deleteTask(req.params.id);
+        await service.deleteTask(req.params.id, req.userId!);
         res.status(204).send();
     }
 
     async list(req: AuthRequest, res: Response) {
-        const view = req.query.view as
-            | "assigned"
-            | "created"
-            | "overdue"
-            | undefined;
-        
-        const tasks = await service.getTasksForUser(
-            req.userId!,
-            view
+        try {
+            console.log("QUERY PARAMS:", req.query);
+            console.log("USER ID:", req.userId);
+
+            const view = req.query.view as
+                | "assigned"
+                | "created"
+                | "overdue"
+                | undefined;
+
+            const tasks = await service.getTasksForUser(
+                req.userId!,
+                view
+            );
+
+            res.json(tasks);
+        } catch (err) {
+            console.error("LIST TASKS FAILED:", err);
+            res.status(400).json({
+                message: "Failed to fetch tasks"
+            });
+        }
+    }
+
+    async getById(req: AuthRequest, res: Response) {
+        const task = await service.getTaskById(
+        req.params.id,
+        req.userId!
         );
 
-        res.json(tasks);
+        res.json(task);
     }
+
 }

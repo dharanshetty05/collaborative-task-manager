@@ -4,8 +4,8 @@ export async function createTask(data:{
     title: string;
     description: string;
     dueDate: string;
-    priority: string;
-    assignedToId: string;
+    priority: "LOW" | "MEDIUM" | "HIGH" | "URGENT";
+    assignedToId?: string;
 }) {
     const res = await api.post("/api/tasks", data);
     return res.data;

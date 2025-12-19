@@ -1,39 +1,39 @@
 import { useState } from "react";
 import { useTasks } from "app/hooks/useTasks";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { createTask } from "app/services/tasks";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { connectSocket, disconnectSocket } from "app/services/socket";
 import { updateTask } from "app/services/tasks";
 import TaskSkeleton from "app/components/TaskSkeleton";
-import { logoutUser } from "app/services/auth";
 import { useRouter } from "next/router";
 import { useMe } from "app/hooks/useMe";
-import NotificationBell from "app/components/NotificationBell";
-
-const taskSchema = z.object({
-        title: z.string().min(1).max(100),
-        description: z.string().min(1),
-        dueDate: z.string(),
-        priority: z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]),
-        assignedToId: z.string()
-    });
-
-type TaskFormData = z.infer<typeof taskSchema>;
+import { useUsers } from "app/hooks/useUsers";
+import AssignmentSelect from "app/components/AssignmentSelect";
+import CreateTaskForm from "./CreateTaskForm";
+import toast from "react-hot-toast";
+import Navbar from "app/components/Navbar";
+import { deleteTask } from "app/services/tasks";
 
 export default function Dashboard() {
     const router = useRouter();
     const [taskView, setTaskView] = useState<"all" | "assigned" | "created" | "overdue">("all");
-
+    const [createFormKey, setCreateFormKey] = useState(0);
+    
     // Hooks
     const { 
         data: me, 
         isLoading: meLoading, 
         isError: meError
     } = useMe();
+
+    const {
+        data: users,
+        isLoading: usersLoading
+    } = useUsers(!!me);
+
+    const userMap = users
+    ? Object.fromEntries(users.map(u => [u.id, u.name]))
+    : {};
 
     const {
         data: tasks,
@@ -49,7 +49,6 @@ export default function Dashboard() {
 
     const [statusFilter, setStatusFilter] = useState<string>("ALL");
     const [priorityFilter, setPriorityFilter] = useState<string>("ALL");
-    const [assigneeMap, setAssigneeMap] = useState<Record<string, string>>({});
 
     const queryClient = useQueryClient();
     
@@ -77,24 +76,11 @@ export default function Dashboard() {
         };
     }, [me, queryClient]);
     
-    
-    const {
-        register,
-        handleSubmit,
-        reset,
-        formState: { errors, isSubmitting }
-    } = useForm<TaskFormData>({
-        resolver: zodResolver(taskSchema)
-    });
-    
-    const onSubmit = async (data: TaskFormData) => {
-        await createTask(data);
-        reset();
-        queryClient.invalidateQueries({ queryKey: ["tasks"] });
-    };
+        
     
     if (meLoading) return null;
     if (!me) return null;
+    if (usersLoading) return null;
     
     // Task loading
     if (tasksLoading) {
@@ -132,6 +118,14 @@ export default function Dashboard() {
         data: { status?: string, assignedToId?: string }
     ) => {
         await updateTask(taskId, data);
+        queryClient.invalidateQueries({ queryKey: ["tasks"], exact: false });
+    };
+
+    const handleDelete = async (taskId: string) => {
+        if (!confirm("Delete this task?")) return;
+
+        await deleteTask(taskId);
+        toast.success("Task deleted");
         queryClient.invalidateQueries({ queryKey: ["tasks"] });
     };
 
@@ -139,71 +133,15 @@ export default function Dashboard() {
         <div className="min-h-screen bg-gray-50">
             <div className="max-w-6xl mx-auto px-6">
                 
-                {/* Dashboard Header (My Tasks + Logout Button) */}
-                <div className="flex items-center justify-between mb-6">
-                    <h1 className="text-2xl font-semibold text-gray-900">
-                        My Tasks
-                    </h1>
-                    
-                    <div className="flex items-center gap-4">
-                        <NotificationBell />
-
-                        <a href="/profile" className="text-sm text-gray-600 hover:text-black">
-                            Profile
-                        </a>
-
-                        <button
-                            onClick={async () => {
-                                await logoutUser();
-                                disconnectSocket();
-                                queryClient.clear();
-                                router.push("/login");
-                            }}
-                            className="text-sm text-gray-600 hover:text-black"
-                            >
-                            Logout
-                        </button>
-                    </div>
-                </div>
-
-                {/* Create Task Form */}
-                <form onSubmit={handleSubmit(onSubmit)} className="bg-white border text-gray-900 rounded-lg p-4 mb-6 space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <input placeholder="Title" {...register("title")} className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black"/>
-                        <p className="text-xs text-red-600 mt-1">{errors.title?.message}</p>
-                        
-                        <input placeholder="Description" {...register("description")} className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black"/>
-                        <p className="text-xs text-red-600 mt-1">{errors.description?.message}</p>
-
-                        <input type="date" {...register("dueDate")} className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black"/>
-                        <p className="text-xs text-red-600 mt-1">{errors.dueDate?.message}</p>
-
-                        <select {...register("priority")} className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black">
-                            <option value="">Select priority</option>
-                            <option value="LOW">LOW</option>
-                            <option value="MEDIUM">MEDIUM</option>
-                            <option value="HIGH">HIGH</option>
-                            <option value="URGENT">URGENT</option>
-                        </select>
-                        <p className="text-xs text-red-600 mt-1">{errors.priority?.message}</p>
-
-                        <input 
-                            placeholder="Assigned To User ID"
-                            {...register("assignedToId")}
-                            className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black"
-                        />
-                        <p className="text-xs text-red-600 mt-1">     {errors.assignedToId?.message}</p>
-                    </div>
-
-                    {/* Create Task Buttom */}
-                    <button 
-                        type="submit"
-                        disabled={isSubmitting}
-                        className="bg-black text-white px-4 py-2 rounded hover:bg-gray-800 disabled:opacity-50"
-                    >
-                        {isSubmitting ? "Creating..." : "Create Task" }
-                    </button>
-                </form>
+                <Navbar title="My Tasks" />
+                <CreateTaskForm
+                    key={createFormKey}
+                    onCreated={() => {
+                        toast.success("Task created");
+                        queryClient.invalidateQueries({ queryKey: ["tasks"] });
+                        setCreateFormKey(k => k + 1);
+                    }}
+                />
 
                 {/* Check if no tasks */}
                 {tasks.length === 0 && (
@@ -260,7 +198,7 @@ export default function Dashboard() {
                             <option value="HIGH">HIGH</option>
                             <option value="URGENT">URGENT</option>
                         </select>
-                </div>
+                    </div>
 
             <ul className="space-y-2">
                 {filteredTasks.map((task: any) => (
@@ -271,27 +209,26 @@ export default function Dashboard() {
                         <p className="text-sm">
                             Due: {new Date(task.dueDate).toLocaleDateString()}
                         </p>
-                        <div>
-                            <select
-                                defaultValue={task.status}
-                                onChange={(e) =>
-                                    handleUpdate(task.id, { status: e.target.value })
-                                }
-                            >
-                                <option value="TODO">TODO</option>
-                                <option value="IN_PROGRESS">IN_PROGRESS</option>
-                                <option value="REVIEW">REVIEW</option>
-                                <option value="COMPLETED">COMPLETED</option>
-                            </select>
+                        <p className="text-xs text-gray-500">
+                            Assigned to:{" "}
+                            {userMap[task.assignedToId] || "Unknown"}
+                        </p>
 
-                            <input
-                                placeholder="Assign to userId"
-                                onBlur={(e) => {
-                                    if (e.target.value) {
-                                        handleUpdate(task.id, { assignedToId: e.target.value });
-                                    }
-                                }}
-                            />
+                        {/* Edit and Delete */}
+                        <div className="flex flex-col gap-1">
+                            <button
+                            onClick={() => router.push(`/tasks/${task.id}/edit`)}
+                            className="text-xs text-blue-600 hover:underline"
+                            >
+                            Edit
+                            </button>
+
+                            <button
+                                onClick={() => handleDelete(task.id)}
+                                className="text-xs text-red-600 hover:underline"
+                                >
+                                Delete
+                            </button>
                         </div>
                     </li>
                 ))}

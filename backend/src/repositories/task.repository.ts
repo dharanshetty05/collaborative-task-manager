@@ -1,6 +1,15 @@
 import prisma from "../utils/prisma";
 import { Task, TaskPriority, TaskStatus } from "@prisma/client";
 
+type TaskUpdateInput = {
+    title?: string;
+    description?: string;
+    dueDate?: Date;
+    priority?: TaskPriority;
+    status?: TaskStatus;
+    assignedToId?: string;
+};
+
 type TaskQueryFilers = {
     view?: "assigned" | "created" | "overdue";
 };
@@ -24,9 +33,10 @@ export class TaskRepository {
         });
     }
 
+
     async update(
         id: string,
-        data: Partial<Omit<Task, "id" | "createdAt">>
+        data: TaskUpdateInput
     ): Promise<Task> {
         return prisma.task.update({
             where: { id },
@@ -42,35 +52,46 @@ export class TaskRepository {
 
     async findForUser(
         userId: string,
-        filters?: TaskQueryFilers
+        view?: "assigned" | "created" | "overdue"
     ) {
-        const baseWhere: any = {
-            OR: [
-                { creatorId: userId },
-                { assignedToId: userId}
-            ]
-        };
-
-        if (filters?.view === "assigned") {
-            baseWhere.assignedToId = userId;
+        if (view === "assigned") {
+            return prisma.task.findMany({
+                where: { assignedToId: userId },
+                orderBy: { dueDate: "asc" }
+            });
         }
 
-        if (filters?.view === "created") {
-            baseWhere.creatorId = userId;
+        if (view === "created") {
+            return prisma.task.findMany({
+                where: { creatorId: userId },
+                orderBy: { dueDate: "asc" }
+            });
         }
 
-        if (filters?.view === "overdue") {
-            baseWhere.dueDate = {
-                lt: new Date()
-            };
-            baseWhere.status = {
-                not: "COMPLETED"
-            };
+        if (view === "overdue") {
+            return prisma.task.findMany({
+                where: {
+                    OR: [
+                        { creatorId: userId },
+                        { assignedToId: userId }
+                    ],
+                    dueDate: { lt: new Date() },
+                    status: { not: "COMPLETED" }
+                },
+                orderBy: { dueDate: "asc" }
+            });
         }
 
+        // default: all visible tasks
         return prisma.task.findMany({
-            where: baseWhere,
+            where: {
+                OR: [
+                    { creatorId: userId },
+                    { assignedToId: userId }
+                ]
+            },
             orderBy: { dueDate: "asc" }
         });
     }
+
 }
