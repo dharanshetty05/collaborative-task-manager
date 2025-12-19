@@ -5,6 +5,7 @@ import { authMiddleware } from "../middleware/auth.middleware";
 const router = Router();
 const controller = new AuthController();
 
+// Profile APIs
 router.get("/me", authMiddleware, (req, res) => controller.me(req, res));
 router.patch("/me", authMiddleware, (req, res) => controller.updateProfile(req, res));
 

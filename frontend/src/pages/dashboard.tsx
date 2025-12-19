@@ -26,6 +26,7 @@ type TaskFormData = z.infer<typeof taskSchema>;
 
 export default function Dashboard() {
     const router = useRouter();
+    const [taskView, setTaskView] = useState<"all" | "assigned" | "created" | "overdue">("all");
 
     // Hooks
     const { 
@@ -38,7 +39,7 @@ export default function Dashboard() {
         data: tasks,
         isLoading: tasksLoading,
         isError: tasksError
-    } = useTasks(!!me);
+    } = useTasks(!!me, taskView);
 
     useEffect(() => {
         if (meError) {
@@ -95,6 +96,7 @@ export default function Dashboard() {
     if (meLoading) return null;
     if (!me) return null;
     
+    // Task loading
     if (tasksLoading) {
         return (
             <div className="p-4 space-y-2">
@@ -105,6 +107,7 @@ export default function Dashboard() {
         )
     }
 
+    // No tasks found
     if (tasksError) {
         return (
             <p className="p-4 text-red-600">
@@ -209,8 +212,32 @@ export default function Dashboard() {
                     </p>
                 )}
 
+                <div className="flex text-gray-500 gap-4 mb-6">
+                    {[
+                        { key: "all", label: "All Tasks" },
+                        { key: "assigned", label: "Assigned to Me" },
+                        { key: "created", label: "Created by Me" },
+                        { key: "overdue", label: "Overdue" }
+                    ].map(tab => (
+                        <button
+                            key={tab.key}
+                            onClick={() =>
+                                setTaskView(tab.key as any)
+                            }
+                            className={`text-sm px-3 py-1 rounded ${
+                                taskView === tab.key
+                                    ? "bg-black text-white"
+                                    : "bg-white border"
+                            }`}
+                        >
+                            {tab.label}
+                        </button>
+                    ))}
+                </div>
+
+
                 {/* Filtering based on Status and Priority */}
-                <div className="flex gap-3 mb-6 text-gray-900">
+                <div className="flex gap-3 mb-6 text-gray-500">
                     <select
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value)}
@@ -237,7 +264,7 @@ export default function Dashboard() {
 
             <ul className="space-y-2">
                 {filteredTasks.map((task: any) => (
-                    <li key={task.id} className="bg-white border rounded-lg p-4 flex justify-between gap-4">
+                    <li key={task.id} className="bg-white text-gray-500 border rounded-lg p-4 flex justify-between gap-4">
                         <p className="font-semibold">{task.title}</p>
                         <p className="text-sm">{task.status}</p>
                         <p className="text-sm">{task.priority}</p>

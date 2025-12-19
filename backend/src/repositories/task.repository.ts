@@ -1,6 +1,10 @@
 import prisma from "../utils/prisma";
 import { Task, TaskPriority, TaskStatus } from "@prisma/client";
 
+type TaskQueryFilers = {
+    view?: "assigned" | "created" | "overdue";
+};
+
 export class TaskRepository {
     async create(data: {
         title: string;
@@ -36,14 +40,36 @@ export class TaskRepository {
         });
     }
 
-    async findForUser(userId: string) {
+    async findForUser(
+        userId: string,
+        filters?: TaskQueryFilers
+    ) {
+        const baseWhere: any = {
+            OR: [
+                { creatorId: userId },
+                { assignedToId: userId}
+            ]
+        };
+
+        if (filters?.view === "assigned") {
+            baseWhere.assignedToId = userId;
+        }
+
+        if (filters?.view === "created") {
+            baseWhere.creatorId = userId;
+        }
+
+        if (filters?.view === "overdue") {
+            baseWhere.dueDate = {
+                lt: new Date()
+            };
+            baseWhere.status = {
+                not: "COMPLETED"
+            };
+        }
+
         return prisma.task.findMany({
-            where: {
-                OR: [
-                    { creatorId: userId },
-                    { assignedToId: userId }
-                ]
-            },
+            where: baseWhere,
             orderBy: { dueDate: "asc" }
         });
     }

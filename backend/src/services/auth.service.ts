@@ -6,6 +6,7 @@ import { email } from "zod";
 export class AuthService {
     private userRepo = new UserRepository();
 
+    // User Register
     async register(name: string, email: string, password: string) {
         const existingUser = await this.userRepo.findByEmail(email);
         if(existingUser) {
@@ -24,6 +25,7 @@ export class AuthService {
         return { user, token };
     }
 
+    // User Log in
     async login(email: string, password:string) {
         const user = await this.userRepo.findByEmail(email);
         if(!user){
@@ -40,6 +42,7 @@ export class AuthService {
         return { user, token };
     }
 
+    // Fetches user details (for Profile)
     async getMe(userId: string) {
         const user = await this.userRepo.findById(userId);
         if (!user) {
@@ -53,6 +56,7 @@ export class AuthService {
         };
     }
 
+    // Update profile (only name)
     async updateProfile(userId: string, name: string) {
         return this.userRepo.updateName(userId, name);
     }

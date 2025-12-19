@@ -57,8 +57,8 @@ export class AuthController {
         res.status(200).json({ message: "Logged out successfully" });
     }
 
+    // Fetches User Profile information
     async me(req: AuthRequest, res: Response) {
-        console.log("USER CONTROLLER /me HIT");
         const userId = req.userId!;
         const user = await authService.getMe(userId);
         res.json(user);

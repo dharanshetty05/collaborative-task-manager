@@ -79,8 +79,10 @@ export class TaskService {
         return;
     }
     
-    // Read tasks
-    async getTasksForUser(userId: string) {
-        return this.taskRepo.findForUser(userId);
+    async getTasksForUser(
+        userId: string,
+        view?: "assigned" | "created" | "overdue"
+    ) {
+        return this.taskRepo.findForUser(userId, { view });
     }
 }

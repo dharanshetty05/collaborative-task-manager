@@ -2,6 +2,7 @@ import prisma from "../utils/prisma";
 import { User } from "@prisma/client";
 
 export class UserRepository {
+    // Not used
     async findByEmail(email: string): Promise<User | null> {
         return prisma.user.findUnique({
             where: { email }
@@ -22,6 +23,7 @@ export class UserRepository {
         return prisma.user.create({ data });
     }
 
+    // For Update Profile
     async updateName(userId: string, name: string) {
         return prisma.user.update({
             where: { id: userId },

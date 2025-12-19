@@ -35,7 +35,17 @@ export class TaskController {
     }
 
     async list(req: AuthRequest, res: Response) {
-        const tasks = await service.getTasksForUser(req.userId!);
+        const view = req.query.view as
+            | "assigned"
+            | "created"
+            | "overdue"
+            | undefined;
+        
+        const tasks = await service.getTasksForUser(
+            req.userId!,
+            view
+        );
+
         res.json(tasks);
     }
 }
