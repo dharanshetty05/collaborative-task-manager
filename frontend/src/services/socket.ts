@@ -11,17 +11,16 @@ export function connectSocket(userId: string) {
     return socket;
 }
 
+export function disconnectSocket() {
+    if (socket) {
+        socket.disconnect();
+        socket = null;
+    }
+}
+
 export function getSocket() {
     if (!socket) {
         throw new Error("Socket not connected");
     }
     return socket;
 }
-
-// export const socket = io(
-//     process.env.NEXT_PUBLIC_API_URL!,
-//     { 
-//         withCredentials: true,
-//         autoConnect: false
-//     }
-// );

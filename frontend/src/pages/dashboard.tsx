@@ -34,10 +34,12 @@ export default function Dashboard() {
     const queryClient = useQueryClient();
 
     useEffect(() => {
+        let socket: ReturnType<typeof connectSocket> | null = null;
+
         async function initSocket() {
             const me = await getMe();
             console.log("ME:", me);
-            const socket = connectSocket(me.id);
+            socket = connectSocket(me.id);
 
             socket.on("task:updated", () => {
                 queryClient.invalidateQueries({ queryKey: ["tasks"] });
@@ -52,25 +54,11 @@ export default function Dashboard() {
         initSocket();
 
         return () => {
-            const socket = getSocket();
-            socket.off("task:updated");
-            socket.off("task:assigned");
+            if (socket) {
+                socket.off("task:updated");
+                socket.off("task:assigned");                
+            }
         }
-        // socket.connect();
-        
-        // socket.on("task:updated", () => {
-        //     queryClient.invalidateQueries({ queryKey: ["tasks"] });
-        // });
-
-        // socket.on("task:assigned", (data) => {
-        //     console.log("RECIEVED task:assigned", data);
-        //     alert(`New task assigned: ${data.title}`);
-        // });
-
-        // return () => {
-        //     socket.off("task:updated");
-        //     socket.off("task:assigned");
-        // };
     }, []);
 
     const {

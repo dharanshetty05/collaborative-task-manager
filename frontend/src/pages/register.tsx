@@ -4,6 +4,7 @@ import { z } from "zod";
 import { registerUser } from "app/services/auth";
 import { motion } from "framer-motion";
 import { User, Mail, Lock, ArrowRight } from "lucide-react";
+import { useRouter } from "next/router";
 
 const schema = z.object({
     name: z.string().min(1),
@@ -14,6 +15,8 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>;
 
 export default function Register() {
+    const router = useRouter();
+
     const {
         register,
         handleSubmit,
@@ -24,7 +27,8 @@ export default function Register() {
 
     const onSubmit = async (data: FormData) => {
         await registerUser(data);
-        alert("Registered successfully");
+        // alert("Registered successfully");
+        router.push("/dashboard");
     };
 
     return (
