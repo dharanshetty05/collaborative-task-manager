@@ -5,6 +5,7 @@ import cookieParser from "cookie-parser";
 import { authMiddleware, AuthRequest } from "./middleware/auth.middleware";
 import taskRoutes from "./routes/task.routes";
 import { errorHandler } from "./middleware/error.middleware";
+import { email } from "zod";
 
 const app = express();
 
