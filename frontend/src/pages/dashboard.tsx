@@ -6,12 +6,12 @@ import { z } from "zod";
 import { createTask } from "app/services/tasks";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
-import { connectSocket, getSocket } from "app/services/socket";
+import { connectSocket, disconnectSocket } from "app/services/socket";
 import { updateTask } from "app/services/tasks";
 import TaskSkeleton from "app/components/TaskSkeleton";
-import { getMe } from "app/services/auth";
 import { logoutUser } from "app/services/auth";
 import { useRouter } from "next/router";
+import { useMe } from "app/hooks/useMe";
 
 const taskSchema = z.object({
         title: z.string().min(1).max(100),
@@ -26,41 +26,51 @@ type TaskFormData = z.infer<typeof taskSchema>;
 export default function Dashboard() {
     const router = useRouter();
 
-    const { data, isLoading, isError } = useTasks();
+    // Hooks
+    const { 
+        data: me, 
+        isLoading: meLoading, 
+        isError: meError
+    } = useMe();
+
+    const {
+        data: tasks,
+        isLoading: tasksLoading,
+        isError: tasksError
+    } = useTasks(!!me);
+
+    useEffect(() => {
+        if (meError) {
+            router.replace("/login");
+        }
+    }, [meError, router]);
+
     const [statusFilter, setStatusFilter] = useState<string>("ALL");
     const [priorityFilter, setPriorityFilter] = useState<string>("ALL");
     const [assigneeMap, setAssigneeMap] = useState<Record<string, string>>({});
 
     const queryClient = useQueryClient();
-
+    
     useEffect(() => {
-        let socket: ReturnType<typeof connectSocket> | null = null;
-
-        async function initSocket() {
-            const me = await getMe();
-            console.log("ME:", me);
-            socket = connectSocket(me.id);
-
-            socket.on("task:updated", () => {
-                queryClient.invalidateQueries({ queryKey: ["tasks"] });
-            });
-
-            socket.on("task:assigned", (data) => {
-                console.log("RECIEVED task:assigned", data);
-                alert(`New task assigned: ${data.title}`);
-            });
-        }
-
-        initSocket();
-
+        if (!me) return;
+        
+        const socket = connectSocket(me.id);
+        
+        socket.on("task:updated", () => {
+            queryClient.invalidateQueries({ queryKey: ["tasks"] });
+        });
+        
+        socket.on("task:assigned", (data) => {
+            alert(`New task assigned: ${data.title}`);
+        });
+        
         return () => {
-            if (socket) {
-                socket.off("task:updated");
-                socket.off("task:assigned");                
-            }
-        }
-    }, []);
-
+            socket.off("task:updated");
+            socket.off("task:assigned");
+        };
+    }, [me, queryClient]);
+    
+    
     const {
         register,
         handleSubmit,
@@ -69,14 +79,17 @@ export default function Dashboard() {
     } = useForm<TaskFormData>({
         resolver: zodResolver(taskSchema)
     });
-
+    
     const onSubmit = async (data: TaskFormData) => {
         await createTask(data);
         reset();
         queryClient.invalidateQueries({ queryKey: ["tasks"] });
     };
-
-    if (isLoading) {
+    
+    if (meLoading) return null;
+    if (!me) return null;
+    
+    if (tasksLoading) {
         return (
             <div className="p-4 space-y-2">
                 <TaskSkeleton />
@@ -86,7 +99,7 @@ export default function Dashboard() {
         )
     }
 
-    if (isError) {
+    if (tasksError) {
         return (
             <p className="p-4 text-red-600">
                 Failed to load tasks
@@ -94,7 +107,7 @@ export default function Dashboard() {
         )
     }
 
-    const filteredTasks = data.filter((task: any) => {
+    const filteredTasks = tasks.filter((task: any) => {
         if(statusFilter !== "ALL" && task.status !== statusFilter) {
             return false;
         }
@@ -126,6 +139,8 @@ export default function Dashboard() {
                     <button
                         onClick={async () => {
                         await logoutUser();
+                        disconnectSocket();
+                        queryClient.clear();
                         router.push("/login");
                         }}
                         className="text-sm text-gray-600 hover:text-black"
@@ -174,7 +189,7 @@ export default function Dashboard() {
                 </form>
 
                 {/* Check if no tasks */}
-                {data.length === 0 && (
+                {tasks.length === 0 && (
                     <p className="text-sm text-gray-500 text-center py-12">
                         No tasks yet. Create your first task above.
                     </p>
