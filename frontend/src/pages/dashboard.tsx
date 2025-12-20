@@ -3,12 +3,10 @@ import { useTasks } from "app/hooks/useTasks";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { connectSocket, disconnectSocket } from "app/services/socket";
-import { updateTask } from "app/services/tasks";
 import TaskSkeleton from "app/components/TaskSkeleton";
 import { useRouter } from "next/router";
 import { useMe } from "app/hooks/useMe";
 import { useUsers } from "app/hooks/useUsers";
-import AssignmentSelect from "app/components/AssignmentSelect";
 import CreateTaskForm from "./CreateTaskForm";
 import toast from "react-hot-toast";
 import Navbar from "app/components/Navbar";
@@ -62,7 +60,12 @@ export default function Dashboard() {
         });
         
         socket.on("task:updated", () => {
-            queryClient.invalidateQueries({ queryKey: ["tasks"] });
+            queryClient.invalidateQueries({
+            predicate: query =>
+                Array.isArray(query.queryKey) &&
+                query.queryKey[0] === "tasks"
+            });
+
         });
         
         socket.on("task:assigned", (data) => {
@@ -111,22 +114,18 @@ export default function Dashboard() {
         }
         return true;
     })
-    
-    // Update task details (assigned to and status) handled here
-    const handleUpdate = async (
-        taskId: string,
-        data: { status?: string, assignedToId?: string }
-    ) => {
-        await updateTask(taskId, data);
-        queryClient.invalidateQueries({ queryKey: ["tasks"], exact: false });
-    };
 
     const handleDelete = async (taskId: string) => {
         if (!confirm("Delete this task?")) return;
 
         await deleteTask(taskId);
         toast.success("Task deleted");
-        queryClient.invalidateQueries({ queryKey: ["tasks"] });
+        queryClient.invalidateQueries({
+            predicate: query =>
+                Array.isArray(query.queryKey) &&
+                query.queryKey[0] === "tasks"
+        });
+
     };
 
     return (
