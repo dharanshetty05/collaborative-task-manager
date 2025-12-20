@@ -5,6 +5,7 @@ import { registerUser } from "app/services/auth";
 import { motion } from "framer-motion";
 import { User, Mail, Lock, ArrowRight } from "lucide-react";
 import { useRouter } from "next/router";
+import toast from "react-hot-toast";
 
 const schema = z.object({
     name: z.string().min(1),
@@ -26,9 +27,13 @@ export default function Register() {
     });
 
     const onSubmit = async (data: FormData) => {
-        await registerUser(data);
-        // alert("Registered successfully");
-        router.push("/dashboard");
+        try {
+            await registerUser(data);
+            toast.success("Account created");
+            router.push("/dashboard");
+        } catch (err: any) {
+            toast.error(err?.message || "Registration failed");
+        }
     };
 
     return (
@@ -121,6 +126,19 @@ export default function Register() {
                         Register
                         <ArrowRight className="h-4 w-4" />
                     </motion.button>
+
+                    <div className="mt-6 text-center">
+                        <p className="text-sm text-slate-600">
+                            Already have an account?{" "}
+                            <button
+                                type="button"
+                                onClick={() => router.push("/login")}
+                                className="font-medium text-slate-900 hover:underline"
+                            >
+                                Sign in
+                            </button>
+                        </p>
+                    </div>
                 </form>
             </motion.div>
         </div>

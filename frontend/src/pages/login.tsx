@@ -5,6 +5,7 @@ import { loginUser } from "app/services/auth";
 import { useRouter } from "next/router";
 import { motion } from "framer-motion";
 import { Mail, Lock, ArrowRight } from "lucide-react";
+import toast from "react-hot-toast";
 
 const schema = z.object({
     email: z.string().email(),
@@ -25,9 +26,13 @@ export default function Login() {
     });
 
     const onSubmit = async (data: FormData) => {
-        await loginUser(data);
-        alert("Logged in");
-        router.push("/dashboard");
+        try {
+            await loginUser(data);
+            toast.success("Logged in successfully");
+            router.push("/dashboard");
+        } catch (err: any) {
+            toast.error(err?.message || "Login failed");
+        }
     };
 
     return (
@@ -100,6 +105,20 @@ export default function Login() {
                         Login
                         <ArrowRight className="h-4 w-4" />
                     </motion.button>
+
+                    <div className="mt-6 text-center">
+                        <p className="text-sm text-slate-600">
+                            Don’t have an account?{" "}
+                            <button
+                                type="button"
+                                onClick={() => router.push("/register")}
+                                className="font-medium text-slate-900 hover:underline"
+                            >
+                                Create one
+                            </button>
+                        </p>
+                    </div>
+
                 </form>
             </motion.div>
         </div>
