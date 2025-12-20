@@ -18,8 +18,8 @@ export class AuthController {
 
         res.cookie("token", token, {
             httpOnly: true,
-            sameSite: "none",
             secure: true,
+            sameSite: "none",
             path: "/"
         });
 
@@ -39,8 +39,8 @@ export class AuthController {
 
         res.cookie("token", token, {
             httpOnly: true,
-            sameSite: "none",
             secure: true,
+            sameSite: "none",
             path: "/"
         });
 
@@ -54,8 +54,8 @@ export class AuthController {
     async logout(_req: Request, res: Response) {
         res.clearCookie("token", {
             httpOnly: true,
-            sameSite: "none",
             secure: true,
+            sameSite: "none",
             path: "/"
         });
 
