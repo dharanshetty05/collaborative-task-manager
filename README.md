@@ -157,9 +157,9 @@ Unless stated otherwise, all protected endpoints require an authenticated sessio
 ---
 
 ## 🏗️ Architecture Overview & Design Decisions
+---
 
 The application prioritizes separation of concerns, data integrity, and predictable behavior under concurrent usage.
----
 
 ### Backend Architecture
 
@@ -168,6 +168,7 @@ The backend follows a **Controller → Service → Repository** pattern:
 - **Controllers:** Handle HTTP request/response lifecycle, perform no business logic, delegate to services
 - **Services:** Contain core business logic, enforce rules (task ownership, assignment behavior, side-effects), coordinate between repositories and external concerns (notifications, sockets)
 - **Repositories:** Isolate all database access, use Prisma as the single source of truth for persistence, keep services database-agnostic
+- For example, task assignment logic lives in the service layer, where it enforces ownership rules, creates notifications, and emits socket events only after a successful transaction.
 
 This separation improves testability and prevents tight coupling between HTTP and business logic.
 

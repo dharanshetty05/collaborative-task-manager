@@ -42,6 +42,14 @@ export class TaskService {
 
     async updateTask(taskId: string, userId: string, data: any) {
         const task = await this.taskRepo.findById(taskId);
+
+        const prevTask = {
+            status: task?.status,
+            priority: task?.priority,
+            assignedToId: task?.assignedToId
+        };
+
+
         if (!task) throw new Error("Task not found");
 
         const canEdit =
@@ -56,6 +64,53 @@ export class TaskService {
         };
 
         const updated = await this.taskRepo.update(taskId, normalizedData);
+
+        if (
+            data.status &&
+            data.status !== prevTask.status &&
+            updated.assignedToId !== userId
+        ) {
+            const notification = await this.notificationRepo.create({
+                userId: updated.assignedToId,
+                message: `Task "${updated.title}" status changed to ${updated.status}`
+            });
+
+            io.to(updated.assignedToId).emit("notification:new", {
+                notificationId: notification.id
+            });
+        }
+
+        if (
+    data.assignedToId &&
+    data.assignedToId !== prevTask.assignedToId
+) {
+    // Notify new assignee
+    if (data.assignedToId !== userId) {
+        const notification = await this.notificationRepo.create({
+            userId: data.assignedToId,
+            message: `You have been assigned a task: ${updated.title}`
+        });
+
+        io.to(data.assignedToId).emit("notification:new", {
+            notificationId: notification.id
+        });
+    }
+
+    // Notify previous assignee (if exists and not actor)
+    if (
+        prevTask.assignedToId &&
+        prevTask.assignedToId !== userId
+    ) {
+        const notification = await this.notificationRepo.create({
+            userId: prevTask.assignedToId,
+            message: `Task "${updated.title}" has been reassigned`
+        });
+
+        io.to(prevTask.assignedToId).emit("notification:new", {
+            notificationId: notification.id
+        });
+    }
+}
 
         io.to(task.creatorId).emit("task:updated", updated);
         io.to(task.assignedToId).emit("task:updated", updated);
