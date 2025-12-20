@@ -28,7 +28,7 @@ app.get("/health", (req, res) => {
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/tasks", taskRoutes);
-app.use("/notifications", notificationRoutes)
+app.use("/api/notifications", notificationRoutes)
 app.use("/api", userRoutes);
 
 // Centralized error handling

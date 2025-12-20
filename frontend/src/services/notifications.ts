@@ -10,10 +10,10 @@
 import api from "./api";
 
 export async function getNotifications() {
-    const res = await api.get("/notifications");
+    const res = await api.get("/api/notifications");
     return res.data;
 }
 
 export async function markNotificationRead(id:string) {
-    await api.patch(`/notifications/${id}/read`);
+    await api.patch(`/api/notifications/${id}/read`);
 }
