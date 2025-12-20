@@ -20,24 +20,6 @@ const io = new Server(httpServer, {
     }
 });
 
-// io.use((socket, next) => {
-//     try{
-//         console.log("SOCKET AUTH PAYLOAD:", socket.handshake.auth);
-
-//         const userId = socket.handshake.auth?.userId;
-
-//         if(!userId) {
-//             console.log("❌ SOCKET REJECTED: No userId");
-//             throw next(new Error("Unauthorized"));
-//         }
-
-//         socket.data.userId = userId;
-//         next();
-//     } catch {
-//         next(new Error("Unauthorized"));
-//     }
-// });
-
 io.on("connection", (socket) => {
     const userId = socket.handshake.auth.userId;
 
