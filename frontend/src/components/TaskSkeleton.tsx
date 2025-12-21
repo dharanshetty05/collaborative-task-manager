@@ -1,3 +1,10 @@
+/**
+ * TaskSkeleton
+ *
+ * Visual placeholder displayed while task data is being fetched.
+ * Used to maintain layout stability and provide feedback during loading states.
+ */
+
 export default function TaskSkeleton() {
     return (
         <div className="border p-3 rounded animate-pulse">

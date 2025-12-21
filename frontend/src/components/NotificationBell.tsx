@@ -11,7 +11,6 @@
  * This ensures notifications are persistent, refresh-safe, and consistent across sessions.
  */
 
-
 import { useState } from "react";
 import { useNotifications } from "app/hooks/useNotifications";
 import { markNotificationRead } from "app/services/notifications";
@@ -20,7 +19,6 @@ import { useQueryClient } from "@tanstack/react-query";
 export default function NotificationBell() {
     const { data, unreadCount, isLoading } = useNotifications();
     const [open, setOpen] = useState(false);
-
     const queryClient = useQueryClient();
 
     if (isLoading) return null;

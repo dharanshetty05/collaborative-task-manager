@@ -6,7 +6,6 @@
  * These functions are intentionally minimal and real-time updates are handled through socket-triggered query invalidation rather than client-side state mutation.
  */
 
-
 import api from "./api";
 
 export async function getNotifications() {

@@ -1,3 +1,11 @@
+/**
+ * Tasks API
+ *
+ * This module provides backend API helpers for creating, updating, and deleting tasks. All task data is treated as server-owned and synchronized on the client via React Query.
+ *
+ * Partial updates are supported, and real-time consistency is achieved through socket-triggered query invalidation rather than direct client-side mutations.
+ */
+
 import api from "./api";
 
 export async function createTask(data:{

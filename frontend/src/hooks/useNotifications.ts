@@ -11,7 +11,6 @@
  * Socket events only invalidate this query; they never mutate state directly.
  */
 
-
 import { useQuery } from "@tanstack/react-query";
 import { getNotifications } from "app/services/notifications";
 

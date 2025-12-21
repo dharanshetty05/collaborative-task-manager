@@ -1,3 +1,15 @@
+/**
+ * Socket Client
+ *
+ * This module manages the lifecycle of a single Socket.IO client instance used
+ * for real-time updates such as task changes and notifications.
+ *
+ * The socket connection is user-scoped and initialized lazily. All real-time
+ * events are consumed as side effects to invalidate React Query caches rather
+ * than mutating client state directly.
+ */
+
+
 import { io, Socket } from "socket.io-client";
 
 let socket: Socket | null = null;

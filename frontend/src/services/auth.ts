@@ -1,3 +1,12 @@
+/**
+ * Authentication API
+ *
+ * This module provides backend API helpers for user authentication and profile management, including registration, login, logout, and fetching the current authenticated user.
+ *
+ * Authentication state is maintained via HttpOnly cookies, and all auth-related data is treated as server-owned. Client-side state is synchronized using React Query rather than manual session management.
+ */
+
+
 import api from "./api";
 
 export async function registerUser(data:{

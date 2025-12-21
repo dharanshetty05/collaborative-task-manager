@@ -5,16 +5,22 @@ import { useRouter } from "next/router";
 import { useMe } from "app/hooks/useMe";
 import { useUpdateProfile } from "app/hooks/useUpdateProfile";
 
+/* ---------------- Schemas ---------------- */
+
 const schema = z.object({
     name: z.string().min(1)
 });
 
 type FormData = z.infer<typeof schema>;
 
+/* ---------------- Page ---------------- */
+
 export default function EditProfile() {
     const { data: me, isLoading } = useMe();
     const updateProfile = useUpdateProfile();
     const router = useRouter();
+
+    /* ---------------- Handlers ---------------- */
 
     const {
         register,
@@ -35,31 +41,33 @@ export default function EditProfile() {
         router.push("/profile");
     };
 
+    /* ---------------- UI ---------------- */
+
     return (
-        <div className="max-w-md mx-auto mt-10 bg-white border text-gray-500 rounded-lg p-6">
+        <div className="mx-auto mt-12 max-w-md rounded-2xl border border-slate-200 bg-white/70 p-8 text-slate-600 backdrop-blur shadow-sm">
 
             {/* Back to Profile */}
             <button
                 onClick={() => router.push("/profile")}
-                className="text-sm text-gray-600 hover:text-black mb-4"
+                className="mb-6 text-sm text-slate-500 hover:text-slate-900 transition"
             >
                 ← Back to Profile
             </button>
             
-            <h1 className="text-lg font-semibold mb-4">Update Profile</h1>
+            <h1 className="mb-6 text-xl font-semibold tracking-tight text-slate-900">Update Profile</h1>
 
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                 <input
                     placeholder="Enter the new name"
                     {...register("name")}
                     className="w-full border rounded px-3 py-2"
                 />
 
-                <div className="flex gap-3">
+                <div className="flex items-center gap-3 pt-2">
                     <button
                         type="submit"
                         disabled={isSubmitting || updateProfile.isPending}
-                        className="bg-black text-white px-4 py-2 rounded disabled:opacity-50"
+                        className="inline-flex items-center justify-center rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 disabled:opacity-50 transition"
                     >
                         Save
                     </button>
@@ -67,7 +75,7 @@ export default function EditProfile() {
                     <button
                         type="button"
                         onClick={() => router.push("/profile")}
-                        className="border px-4 py-2 rounded"
+                        className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-5 py-2.5 text-sm text-slate-700 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-300/40 transition"
                     >
                         Cancel
                     </button>

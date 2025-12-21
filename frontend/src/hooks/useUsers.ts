@@ -1,3 +1,11 @@
+/**
+ * useUsers
+ *
+ * React Query hook for fetching the list of users available for task assignment.
+ * Fetching can be conditionally enabled to avoid unnecessary requests before
+ * authentication is resolved.
+ */
+
 import { useQuery } from "@tanstack/react-query";
 import api from "app/services/api";
 import { User } from "app/types/user";

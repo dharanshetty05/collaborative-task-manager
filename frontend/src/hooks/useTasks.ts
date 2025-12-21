@@ -1,3 +1,13 @@
+/**
+ * useTasks Hook
+ *
+ * React Query hook for fetching tasks based on the selected view
+ * (all, assigned, created, or overdue).
+ *
+ * Task data is treated as server-owned and synchronized via query
+ * invalidation triggered by real-time socket events.
+ */
+
 import { useQuery } from "@tanstack/react-query";
 import api from "app/services/api";
 

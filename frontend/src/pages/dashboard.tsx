@@ -1,238 +1,302 @@
-import { useState } from "react";
-import { useTasks } from "app/hooks/useTasks";
-import { useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
-import { connectSocket, disconnectSocket } from "app/services/socket";
-import TaskSkeleton from "app/components/TaskSkeleton";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
+import { useQueryClient } from "@tanstack/react-query";
+import { motion, AnimatePresence } from "framer-motion";
+import { Calendar, Flag, User, Pencil, Trash2, CheckCircle2 } from "lucide-react";
+import toast from "react-hot-toast";
+import Head from "next/head";
+
+import Navbar from "app/components/Navbar";
+import TaskSkeleton from "app/components/TaskSkeleton";
+import CreateTaskForm from "./CreateTaskForm";
+
 import { useMe } from "app/hooks/useMe";
 import { useUsers } from "app/hooks/useUsers";
-import CreateTaskForm from "./CreateTaskForm";
-import toast from "react-hot-toast";
-import Navbar from "app/components/Navbar";
+import { useTasks } from "app/hooks/useTasks";
+import { connectSocket } from "app/services/socket";
 import { deleteTask } from "app/services/tasks";
 
+/* ---------------- Animations ---------------- */
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: { opacity: 1, transition: { staggerChildren: 0.06 } }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 12 },
+  show: { opacity: 1, y: 0 }
+};
+
+/* ---------------- Component ---------------- */
+
 export default function Dashboard() {
-    const router = useRouter();
-    const [taskView, setTaskView] = useState<"all" | "assigned" | "created" | "overdue">("all");
-    const [createFormKey, setCreateFormKey] = useState(0);
-    
-    // Hooks
-    const { 
-        data: me, 
-        isLoading: meLoading, 
-        isError: meError
-    } = useMe();
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const [showCreate, setShowCreate] = useState(false);
 
-    const {
-        data: users,
-        isLoading: usersLoading
-    } = useUsers(!!me);
+  const [taskView, setTaskView] = useState<
+    "all" | "assigned" | "created" | "overdue"
+  >("all");
 
-    const userMap = users
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [priorityFilter, setPriorityFilter] = useState("ALL");
+  const [createFormKey, setCreateFormKey] = useState(0);
+
+  const { data: me, isLoading: meLoading, isError: meError } = useMe();
+  const { data: users } = useUsers(!!me);
+  const { data: tasks, isLoading: tasksLoading, isError: tasksError } =
+    useTasks(!!me, taskView);
+
+  const userMap = users
     ? Object.fromEntries(users.map(u => [u.id, u.name]))
     : {};
 
-    const {
-        data: tasks,
-        isLoading: tasksLoading,
-        isError: tasksError
-    } = useTasks(!!me, taskView);
+  /* ---------------- Guards ---------------- */
 
-    useEffect(() => {
-        if (meError) {
-            router.replace("/login");
-        }
-    }, [meError, router]);
+  useEffect(() => {
+    if (meError) router.replace("/login");
+  }, [meError, router]);
 
-    const [statusFilter, setStatusFilter] = useState<string>("ALL");
-    const [priorityFilter, setPriorityFilter] = useState<string>("ALL");
+  useEffect(() => {
+    if (!me) return;
 
-    const queryClient = useQueryClient();
-    
-    useEffect(() => {
-        if (!me) return;
-        
-        const socket = connectSocket(me.id);
+    const socket = connectSocket(me.id);
 
-        socket.on("notification:new", () => {
-            queryClient.invalidateQueries({ queryKey: ["notifications"] });
-        });
-        
-        socket.on("task:updated", () => {
-            queryClient.invalidateQueries({
-            predicate: query =>
-                Array.isArray(query.queryKey) &&
-                query.queryKey[0] === "tasks"
-            });
+    socket.on("notification:new", () => {
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    });
 
-        });
-        
-        socket.on("task:assigned", (data) => {
-            alert(`New task assigned: ${data.title}`);
-        });
-        
-        return () => {
-            socket.off("notification:new");
-            socket.off("task:updated");
-            socket.off("task:assigned");
-        };
-    }, [me, queryClient]);
-    
-        
-    
-    if (meLoading) return null;
-    if (!me) return null;
-    if (usersLoading) return null;
-    
-    // Task loading
-    if (tasksLoading) {
-        return (
-            <div className="p-4 space-y-2">
-                <TaskSkeleton />
-                <TaskSkeleton />
-                <TaskSkeleton />
-            </div>
-        )
-    }
+    socket.on("task:updated", () => {
+      queryClient.invalidateQueries({
+        predicate: q => q.queryKey[0] === "tasks"
+      });
+    });
 
-    // No tasks found
-    if (tasksError) {
-        return (
-            <p className="p-4 text-red-600">
-                Failed to load tasks
-            </p>
-        )
-    }
+    socket.on("task:assigned", data => {
+      toast.success(`New task assigned: ${data.title}`);
+    });
 
-    const filteredTasks = tasks.filter((task: any) => {
-        if(statusFilter !== "ALL" && task.status !== statusFilter) {
-            return false;
-        }
-        if(priorityFilter !== "ALL" && task.priority !== priorityFilter) {
-            return false;
-        }
-        return true;
-    })
-
-    const handleDelete = async (taskId: string) => {
-        if (!confirm("Delete this task?")) return;
-
-        await deleteTask(taskId);
-        toast.success("Task deleted");
-        queryClient.invalidateQueries({
-            predicate: query =>
-                Array.isArray(query.queryKey) &&
-                query.queryKey[0] === "tasks"
-        });
-
+    return () => {
+      socket.disconnect();
     };
+  }, [me, queryClient]);
 
+  if (meLoading) return null;
+  if (!me) return null;
+
+  if (tasksLoading) {
     return (
-        <div className="min-h-screen bg-gray-50">
-            <div className="max-w-6xl mx-auto px-6">
-                
-                <Navbar title="My Tasks" />
-                <CreateTaskForm
-                    key={createFormKey}
-                    onCreated={() => {
-                        toast.success("Task created");
-                        queryClient.invalidateQueries({ queryKey: ["tasks"] });
-                        setCreateFormKey(k => k + 1);
-                    }}
-                />
+      <div className="p-6 space-y-3">
+        <TaskSkeleton />
+        <TaskSkeleton />
+        <TaskSkeleton />
+      </div>
+    );
+  }
 
-                {/* Check if no tasks */}
-                {tasks.length === 0 && (
-                    <p className="text-sm text-gray-500 text-center py-12">
-                        No tasks yet. Create your first task above.
-                    </p>
-                )}
+  if (tasksError) {
+    return (
+      <p className="p-6 text-sm text-red-600">
+        Failed to load tasks
+      </p>
+    );
+  }
 
-                <div className="flex text-gray-500 gap-4 mb-6">
-                    {[
-                        { key: "all", label: "All Tasks" },
-                        { key: "assigned", label: "Assigned to Me" },
-                        { key: "created", label: "Created by Me" },
-                        { key: "overdue", label: "Overdue" }
-                    ].map(tab => (
-                        <button
-                            key={tab.key}
-                            onClick={() =>
-                                setTaskView(tab.key as any)
-                            }
-                            className={`text-sm px-3 py-1 rounded ${
-                                taskView === tab.key
-                                    ? "bg-black text-white"
-                                    : "bg-white border"
-                            }`}
-                        >
-                            {tab.label}
-                        </button>
-                    ))}
-                </div>
+  /* ---------------- Filtering ---------------- */
 
+  const filteredTasks = tasks.filter((task: any) => {
+    if (statusFilter !== "ALL" && task.status !== statusFilter) return false;
+    if (priorityFilter !== "ALL" && task.priority !== priorityFilter) return false;
+    return true;
+  });
 
-                {/* Filtering based on Status and Priority */}
-                <div className="flex gap-3 mb-6 text-gray-500">
-                    <select
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value)}
-                    className="border rounded px-3 py-2 text-sm bg-white"
-                    >
-                        <option value="ALL">All Status</option>
-                        <option value="TODO">TODO</option>
-                        <option value="IN_PROGRESS">IN_PROGRESS</option>
-                        <option value="REVIEW">REVIEW</option>
-                        <option value="COMPLETED">COMPLETED</option>
-                    </select>
+  const handleDelete = async (taskId: string) => {
+    if (!confirm("Delete this task?")) return;
 
-                    <select
-                        value={priorityFilter}
-                        onChange={(e) => setPriorityFilter(e.target.value)}
-                        className="border rounded px-3 py-2 text-sm bg-white">
-                            <option value="ALL">All Priority</option>
-                            <option value="LOW">LOW</option>
-                            <option value="MEDIUM">MEDIUM</option>
-                            <option value="HIGH">HIGH</option>
-                            <option value="URGENT">URGENT</option>
-                        </select>
+    await deleteTask(taskId);
+    toast.success("Task deleted");
+
+    queryClient.invalidateQueries({
+      predicate: q => q.queryKey[0] === "tasks"
+    });
+  };
+
+  /* ---------------- UI ---------------- */
+
+  return (
+  <>
+    <Head>
+        <title>Dashboard · TaskFlow</title>
+      </Head>
+
+    <main className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 pb-20">
+        <Navbar title="My Tasks" />
+
+        <div className="mt-6 flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-indigo-900">
+                Tasks
+            </h2>
+
+            <button
+                onClick={() => setShowCreate(v => !v)}
+                className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-500 transition"
+            >
+                {showCreate ? "Close" : "Create Task"}
+            </button>
+        </div>
+
+    <AnimatePresence>
+  {showCreate && (
+    <motion.div
+      initial={{ opacity: 0, y: -12 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -12 }}
+      transition={{ duration: 0.2 }}
+      className="mt-6"
+    >
+        <CreateTaskForm
+          key={createFormKey}
+          onCreated={() => {
+            toast.success("Task created");
+            queryClient.invalidateQueries({ queryKey: ["tasks"] });
+            setCreateFormKey(k => k + 1);
+          }}
+        />
+        </motion.div>
+  )}
+</AnimatePresence>
+
+        {/* Tabs */}
+        <div className="flex gap-2 mt-6 overflow-x-auto">
+          {[
+            { key: "all", label: "All" },
+            { key: "assigned", label: "Assigned" },
+            { key: "created", label: "Created" },
+            { key: "overdue", label: "Overdue" }
+          ].map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => setTaskView(tab.key as any)}
+              className={`rounded-full px-4 py-1.5 text-sm transition
+                ${
+                  taskView === tab.key
+                    ? "bg-indigo-600 text-white shadow"
+                    : "border border-slate-300 bg-white/70 text-slate-600 hover:bg-white"
+                }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Filters */}
+        <div className="mt-4 flex flex-wrap gap-3">
+          <select
+            value={statusFilter}
+            onChange={e => setStatusFilter(e.target.value)}
+            className="rounded-lg border border-slate-300 bg-white/80 px-3 py-2 text-sm text-slate-700 focus:ring-2 focus:ring-indigo-500"
+          >
+            <option value="ALL">All Status</option>
+            <option value="TODO">TODO</option>
+            <option value="IN_PROGRESS">IN_PROGRESS</option>
+            <option value="REVIEW">REVIEW</option>
+            <option value="COMPLETED">COMPLETED</option>
+          </select>
+
+          <select
+            value={priorityFilter}
+            onChange={e => setPriorityFilter(e.target.value)}
+            className="rounded-lg border border-slate-300 bg-white/80 px-3 py-2 text-sm text-slate-700 focus:ring-2 focus:ring-indigo-500"
+          >
+            <option value="ALL">All Priority</option>
+            <option value="LOW">LOW</option>
+            <option value="MEDIUM">MEDIUM</option>
+            <option value="HIGH">HIGH</option>
+            <option value="URGENT">URGENT</option>
+          </select>
+        </div>
+
+        {/* Empty */}
+        {filteredTasks.length === 0 && (
+          <p className="mt-16 text-center text-sm text-slate-500">
+            No tasks found.
+          </p>
+        )}
+
+        {/* Task list */}
+        <motion.ul
+          variants={containerVariants}
+          initial="hidden"
+          animate="show"
+          className="mt-6 space-y-3"
+        >
+          <AnimatePresence>
+            {filteredTasks.map((task: any) => (
+              <motion.li
+                key={task.id}
+                variants={itemVariants}
+                exit={{ opacity: 0, y: -8 }}
+                className="rounded-xl border border-slate-200 bg-white/70 p-4 backdrop-blur shadow-sm"
+              >
+                <div className="flex justify-between gap-4">
+                  <div className="space-y-1">
+                    <h3 className="font-medium text-slate-900">
+                      {task.title}
+                    </h3>
+
+                    {task.description && (
+                      <p className="text-sm text-slate-600 line-clamp-2">
+                        {task.description}
+                      </p>
+                    )}
+
+                    <div className="flex flex-wrap gap-4 text-xs text-slate-600">
+                      <span className="flex items-center gap-1">
+                        <CheckCircle2 size={14} />
+                        {task.status}
+                      </span>
+
+                      <span className="flex items-center gap-1">
+                        <Flag size={14} />
+                        {task.priority}
+                      </span>
+
+                      <span className="flex items-center gap-1">
+                        <Calendar size={14} />
+                        {new Date(task.dueDate).toLocaleDateString()}
+                      </span>
+
+                      <span className="flex items-center gap-1">
+                        <User size={14} />
+                        {userMap[task.assignedToId] || "Unknown"}
+                      </span>
                     </div>
+                  </div>
 
-            <ul className="space-y-2">
-                {filteredTasks.map((task: any) => (
-                    <li key={task.id} className="bg-white text-gray-500 border rounded-lg p-4 flex justify-between gap-4">
-                        <p className="font-semibold">{task.title}</p>
-                        <p className="text-sm">{task.status}</p>
-                        <p className="text-sm">{task.priority}</p>
-                        <p className="text-sm">
-                            Due: {new Date(task.dueDate).toLocaleDateString()}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                            Assigned to:{" "}
-                            {userMap[task.assignedToId] || "Unknown"}
-                        </p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => router.push(`/tasks/${task.id}/edit`)}
+                      className="rounded-lg p-2 text-slate-600 hover:bg-slate-100"
+                    >
+                      <Pencil size={16} />
+                    </button>
 
-                        {/* Edit and Delete */}
-                        <div className="flex flex-col gap-1">
-                            <button
-                            onClick={() => router.push(`/tasks/${task.id}/edit`)}
-                            className="text-xs text-blue-600 hover:underline"
-                            >
-                            Edit
-                            </button>
-
-                            <button
-                                onClick={() => handleDelete(task.id)}
-                                className="text-xs text-red-600 hover:underline"
-                                >
-                                Delete
-                            </button>
-                        </div>
-                    </li>
-                ))}
-            </ul>
-        </div>
-        </div>
-    )
+                    <button
+                      onClick={() => handleDelete(task.id)}
+                      className="rounded-lg p-2 text-red-600 hover:bg-red-50"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                </div>
+              </motion.li>
+            ))}
+          </AnimatePresence>
+        </motion.ul>
+      </div>
+    </main>
+  </>
+  );
 }
