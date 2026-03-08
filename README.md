@@ -12,8 +12,6 @@ Tech stack:
 ## 🚀 Live Deployment
 
 Frontend: https://collaborative-task-manager-one-pied.vercel.app/
-Backend API: https://taskflow-backend-w8ce.onrender.com
-
 
 ## 🛠️ Setup Instructions (Local)
 
