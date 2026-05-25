@@ -77,8 +77,6 @@ Frontend runs at http://localhost:3000.
 
 All backend APIs are exposed under a REST interface. Authentication uses JWTs stored in HttpOnly cookies and is enforced via middleware on protected routes.
 
-Unless stated otherwise, all protected endpoints require an authenticated session. All endpoints are versioned under /api.
-
 ---
 
 ### 🔐 Authentication APIs
@@ -253,11 +251,6 @@ Tested areas:
 - Error handling for invalid task operations
 
 The service layer was chosen because it represents the core business rules independent of transport (REST or sockets). Tests are located in the service layer test directory and can be run using npm test.
-
-
-## ⚖️ Trade-offs & Assumptions
-
-Trade-offs and assumptions prioritize correctness, clarity, and maintainability within the scope of the assignment.
 
 ---
 
